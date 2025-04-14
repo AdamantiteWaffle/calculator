@@ -1,0 +1,1 @@
+This calculator was made because I don't like the unit in data that we're doing in math right now. It can do mean, median, mode, standard deviation, and interquartile range. It can also square numbers. A neat feature of this calculator is that it only works on UNIX systems with bash specifically. I tried this with zsh and it didn't work because of certain bash-only features.
