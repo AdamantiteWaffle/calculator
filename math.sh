@@ -1,6 +1,6 @@
 #!/bin/bash
 
-printf "Enter the type calculation to make:\nmn - mean\nmd - median\nmo - mode\nstdev - standard deviation\nsort\niqr - interquartile range\nThis calculator is cabable of exponents, but they must be specified as "e+0x," where x is the exponent.\nFor example, 6*10^1 is 6e+01. 6*10^2 is 6e+02.\n"
+printf "Enter the type calculation to make:\nmn - mean\nmd - median\nmo - mode\nstdev - standard deviation\nsort\niqr - interquartile range\nz-score\nrange\nThis calculator is cabable of exponents, but they must be specified as "e+0x," where x is the exponent.\nFor example, 6*10^1 is 6e+01. 6*10^2 is 6e+02.\n"
 read datatype
 	case $datatype in
 		mn)
@@ -25,9 +25,9 @@ read datatype
 		mo)
 			echo "Enter data set, separated by commas with no spaces."
 			read mode
-			echo "$mode" | tr "," "\n" > mode2
-			sort -n mode2 | uniq --count | sort -rn | head -n 1 > mode3
-			cat mode3
+			mode2=$(echo "$mode" | tr "," "\n")
+			mode3=$(echo "$mode2"| sort -n| uniq --count | sort -rn | head -n 1)
+			echo "$mode3"
 		;;
 		stdev)
 			echo "Choose whether to calculate a sample or a population.\n"
@@ -136,15 +136,15 @@ read datatype
 						mdi1=$((count1 /2))
 						mdi2=$((count2 /2))
 						if ((count1 % 2 == 0)); then
-									    mdh1=$(((h1[mdi1 - 1] + count1[mdi1]) / 2))
-									else
-									    mdh1=${h1[mdi1]}
-									fi
+						    mdh1=$(((h1[mdi1 - 1] + count1[mdi1]) / 2))
+						else
+						    mdh1=${h1[mdi1]}
+						fi
 						if ((count2 % 2 == 0)); then
-									    mdh2=$(((h2[mdi2 - 1] + count2[mdi2]) / 2))
-									else
-									    mdh2=${h2[mdi2]}
-									fi
+						    mdh2=$(((h2[mdi2 - 1] + count2[mdi2]) / 2))
+						else
+						    mdh2=${h2[mdi2]}
+						fi
 						echo "The median of the first half is $mdh1"
 						echo "The median of the second half is $mdh2"
 						iqr=$(expr $mdh2 - $mdh1)
@@ -175,5 +175,61 @@ read datatype
 						iqr=$(expr $mdh2 - $mdh1)
 						echo "The interquartile range is $iqr"
 				fi
+		;;
+		"plot")
+			echo "Enter X values, separated by commas with no spaces."
+			read input
+			readarray -t array1 <<< "$(echo "$input" | tr ',' '\n')"
+			read -ra dataset <<< "$(printf '%s ' "${array1[@]}")"
+			echo "Entery Y values, separated by commas with no spaces."
+			read input2
+			readarray -t array2 <<< "$(echo "$input1" | tr ',' '\n')"
+			read -ra dataset1 <<< "$(printf '%s ' "${array2[@]}")"
+			printf "%s\n" "$array1[@]} ${array2[@]}" | gnuplot -p -e 'set term dumb; plot "<cat" w l'
+			
+		;;
+		"z-score")
+			echo "Enter mean of data set"
+			read mean
+			echo "Enter standard deviation"
+			read stdev
+			p1stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean + stdev; print result; }')
+			n1stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean - stdev; print result; }')
+			echo "68.2% of the data lies between $n1stdev and $p1stdev"
+			p2stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean + (stdev * 2); print result; }')
+			n2stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean - (stdev * 2); print result; }')
+			echo "95.4% of the data lies between $n2stdev and $p2stdev"
+			p3stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean + (stdev * 3); print result; }')
+			n3stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean - (stdev * 3); print result; }')
+			echo "99.6% of the data lies between $n3stdev and $p3stdev"
+			p4stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean + (stdev * 4); print result; }')
+			n4stdev=$(awk -vOFMT=%.5f -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = mean - (stdev * 4); print result; }')
+			echo "99.8% of the data lies between $n4stdev and $p4stdev"
+			echo "Enter a data point to calculate the z-score"
+			read point
+			zscore=$(awk -vOFMT=%.5f -v point="$point" -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = ((point - mean) / stdev); print result; }')
+			echo "The z-score is $zscore"
+			tzscore=$(printf "%.1f" "$zscore")
+			IFS=';' read -ra arr <<< "$(curl -s --retry 5 'https://ztable.io/static/dl/ztable.csv' | grep "^$tzscore")"
+			unset IFS
+			echo "${arr[@]}"
+			zindex=$(printf "%.2f" "$zscore" | grep -Eo '[0-9]' | tail -1)
+			echo "$zindex"
+			unset arr[0]
+			echo ${arr[@]}
+			echo "${arr[0]}"
+			output=$(("$zindex" + 1))
+			output2=$(awk -v thing="${arr[$output]}" 'BEGIN { result = thing * 100; print result; }')
+			echo "$output2% of the data lies at or below $point"
+			greater=$(awk -v output2="$output2" 'BEGIN { result = (100 - output2); print result; }')
+			echo "$greater% of the data lies at or above $point"
+		;;
+		"range")
+			echo "Enter data set, separated by commas"
+			read input
+			readarray -t dataset <<< "$(echo "$input" | tr "," "\n" | sort -n)"
+			echo "${dataset[@]}"
+			range=$(("${dataset[-1]}" - "${dataset[1]}"))
+			echo "$range"
 		;;
 	esac
