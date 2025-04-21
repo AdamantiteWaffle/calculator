@@ -209,7 +209,7 @@ read datatype
 			read point
 			zscore=$(awk -vOFMT=%.5f -v point="$point" -v mean="$mean" -v stdev="$stdev" 'BEGIN { result = ((point - mean) / stdev); print result; }')
 			echo "The z-score is $zscore"
-			tzscore=$(printf "%.1f" "$zscore")
+			tzscore=$(echo "$zscore" | awk -F'.' '{print $1"."substr($2, 1, 1)}')
 			IFS=';' read -ra arr <<< "$(curl -s --retry 5 'https://ztable.io/static/dl/ztable.csv' | grep "^$tzscore")"
 			unset IFS
 			echo "${arr[@]}"
